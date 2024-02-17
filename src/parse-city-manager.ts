@@ -34,6 +34,7 @@ async function startManager(pageNumber: number, stopPage: number) {
                         }
                     );
                     pageNumber++;
+                    console.log(parserQueue);
                 };
             };
         } else {
@@ -49,7 +50,7 @@ parserQueue.process(async (job: Job<ParserQueueJobData>, done) => {
         const city: string = job.data.city;
         const pageNumber: number = job.data.pageNumber;
         const response = await SiteParser.multiPageParse(city, pageNumber, 50);
-        console.log(response);
+        // console.log(response);
         if( response?.length === 0 ) {
             articleFound = false;
         } else {
@@ -81,7 +82,7 @@ export const initJob = new CronJob(
         if(!articleFound){
             startManager(startPage+5, stopPage+5);
         }else{
-            startManager(startPage, startPage+5);
+            startManager(startPage-5, startPage+5);
         }
         console.log("\nSSS");
 	},

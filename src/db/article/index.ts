@@ -38,7 +38,7 @@ const ArticleSchema = new Schema <IArticle>({
     rooms: { type: Number, required: true },
     security: { type: String, default: ''},
     description: { type: String, default: '' },
-    pageUrl: { type: String, required: true },
+    pageUrl: { type: String, default: '' },
 }, 
 {
     timestamps: true,
