@@ -18,6 +18,7 @@ interface ParsedData {
     security: string;
     description: string;
     pageUrl: string;
+    city: string;
 }
 
 function getRandomDelay() {
@@ -51,7 +52,12 @@ export class SiteParser{
             
             const floorText = String($('div[data-name="flat.floor"] .offer__advert-short-info').text());
             const floorString = floorText.match(/(\d+)\s+из\s+(\d+)/);
-            const floor = parseInt(floorString ? floorString[0]: floorText);
+            
+            let floor = parseInt(floorString ? floorString[0]: floorText);
+            if(!floor){
+                floor = parseInt(floorText);
+            }
+
             const floorMax = parseInt(floorString ? floorString[floorString.length - 1]: floorText);
             
             const areaText = $('div[data-name="live.square"] .offer__advert-short-info').text().trim();
@@ -69,8 +75,9 @@ export class SiteParser{
             const description = $('.a-text-white-spaces').text().trim();
 
             let pageUrl = '';
+            let city = '';
             
-            const parsedData: ParsedData = {
+            let parsedData: ParsedData = {
                 id,
                 title,
                 baseUrl,
@@ -87,6 +94,7 @@ export class SiteParser{
                 security,
                 description,
                 pageUrl,
+                city
             };
 
             return parsedData;
@@ -105,7 +113,6 @@ export class SiteParser{
             const cityUrl = `https://krisha.kz/arenda/kvartiry/${city}/?rent-period-switch=%2Farenda%2Fkvartiry&page=${pageNumber}`
             const response = await axios.get(cityUrl, {headers});
             const $ = cheerio.load(response.data);
-            // const elements = $('.a-card');
             const ids: string[] = await this.getAllId($);
             const views = await this.getAdsViewsById(ids);
             const elements = $('.a-card').toArray();
@@ -114,34 +121,13 @@ export class SiteParser{
                 const element = elements[index];
                 const $ = cheerio.load(element);
                 const innerElements = $('div.a-card__paid-services.paid-labels').find('*');
-                if(views[ids[index]] <= neededViews && ids[index] !== undefined && innerElements.length > 0) {
-                    const scrapedData = await this.parseId(ids[index]);
+                if(views[ids[index]] <= neededViews && ids[index] !== undefined && innerElements.length === 0) {
+                    let scrapedData = await this.parseId(ids[index]);
                     if(scrapedData !== null){
-                        scrapedData.pageUrl = `https://krisha.kz/arenda/kvartiry/${city}/?rent-period-switch=%2Farenda%2Fkvartiry&page=${pageNumber}`;
                         scrapedDataArray.push(scrapedData);
                     }
                 }
             }
-            // for( const id of ids ) {
-            //     if(views[id] <= neededViews) {
-            //         const scrapedData = await this.parseId(id);
-            //         if(scrapedData !== null){
-            //             scrapedData.pageUrl = `https://krisha.kz/arenda/kvartiry/${city}/?rent-period-switch=%2Farenda%2Fkvartiry&page=${pageNumber}`;
-            //             scrapedDataArray.push(scrapedData);
-            //         }
-            //     }
-            // }
-            // elements.each(( index, element ) => {
-            //     const $ = cheerio.load(element);
-            //     const innerElements = $('div.a-card__paid-services.paid-labels').find('*');
-            //     if (innerElements.length <= 0) {
-            //         const dataId = $(innerElements).attr("data-id");
-            //         if(dataId !== undefined){
-            //             const id = parseInt(dataId);
-            //             scrapedDataArray = scrapedDataArray.filter((obj) => obj.id !== id);
-            //         }
-            //     }
-            // });
             return scrapedDataArray;
         }catch(error){
             console.error("multiPageParse function error! ", error)

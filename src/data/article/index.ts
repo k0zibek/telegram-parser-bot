@@ -18,6 +18,7 @@ export type SaveParsedDataType = {
     security: string;
     description: string;
     pageUrl: string;
+    city: string;
 };
 
 export type FindOneParsedDataType = 

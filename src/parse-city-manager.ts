@@ -10,8 +10,7 @@ import { UserModel } from './db/user';
 import { createAdMessageById } from './createAdMessage';
 
 const bot = new TelegramBot(Config.telegramApiToken);
-let startPage = 2;
-let stopPage = startPage + 5;
+let startPage = 11;
 let articleFound: boolean;
 
 async function startManager(pageNumber: number, stopPage: number) {
@@ -20,23 +19,25 @@ async function startManager(pageNumber: number, stopPage: number) {
         if (queueCount === 0) {
             console.log('Queue is empty. Adding task to queue.');
             const cities = ['almaty', 'astana', 'shymkent'];
-            for (const city of cities) {
-                console.log(city);
-                while (pageNumber <= stopPage) {
-                    await parserQueue.add(
-                        {
-                            city,
-                            pageNumber
-                        },
-                        {
-                            removeOnComplete: true, 
-                            removeOnFail: true
-                        }
-                    );
-                    pageNumber++;
-                    console.log(parserQueue);
-                };
-            };
+            let j = 0;
+            let count = 0;
+            for(let i = pageNumber; i<=stopPage; i++){
+                await parserQueue.add(
+                    {
+                        city: cities[j],
+                        pageNumber: i
+                    }
+                );
+                console.log(`Adding queue for ${cities[j]} - Page ${i}`);
+                
+                if(i === stopPage && count < cities.length-1 ){
+                    i = pageNumber-1;
+                    j++;
+                    count++;
+                    console.log('\n');
+                }
+            }
+
         } else {
           console.log('Queue is not empty. Skipping job addition.');
         }
@@ -50,22 +51,23 @@ parserQueue.process(async (job: Job<ParserQueueJobData>, done) => {
         const city: string = job.data.city;
         const pageNumber: number = job.data.pageNumber;
         const response = await SiteParser.multiPageParse(city, pageNumber, 50);
-        // console.log(response);
-        if( response?.length === 0 ) {
-            articleFound = false;
-        } else {
-            if(response !== null) {
-                for(let i = 1; i < response.length; i++){
-                    const message = await createAdMessageById(String(response[i].id));
-                    const allUsers = await UserModel.find();
-                    for(let j = 0; j < allUsers.length; j++) {
-                        console.log('Sending message to user ', allUsers[j].firstName)
-                        await bot.sendMessage(parseInt(allUsers[j].chatId), message);
-                    }
+        if(response !== null) {
+            for(let i = 1; i < response.length; i++){
+                const message = await createAdMessageById(String(response[i].id));
+                const allUsers = await UserModel.find();
+                for(let j = 0; j < allUsers.length; j++) {
+                    console.log('Sending message to user ', allUsers[j].firstName)
+                    await bot.sendMessage(parseInt(allUsers[j].chatId), message);
                 }
             }
         }
-        done(null)
+        // if( response?.length === 0 ) {
+        //     articleFound = false;
+        // } else {
+            
+        // }
+        console.log(`Processed job for ${city} - Page ${pageNumber}`);
+        done(null, response);
     } catch (error: any) {
         console.log(error);
         done(new Error(error));
@@ -74,16 +76,28 @@ parserQueue.process(async (job: Job<ParserQueueJobData>, done) => {
     }
 });
 
+parserQueue.on('error', (error) => {
+    console.error('Queue error:', error);
+});
+
 initDatabase().then();
 
 export const initJob = new CronJob(
     '* * * * *',
 	async function () {
-        if(!articleFound){
-            startManager(startPage+5, stopPage+5);
+        if(startPage <= 5){
+            startManager(startPage, startPage+1);
         }else{
-            startManager(startPage-5, startPage+5);
+            startPage += 5;
+            startManager(startPage, startPage+5);
         }
+        // else if(!articleFound){
+        //     startPage += 5;
+        //     startManager(startPage, startPage+5);
+        // }else{
+        //     startPage -= 5;
+        //     startManager(startPage, startPage+5);
+        // }
         console.log("\nSSS");
 	},
     null,
