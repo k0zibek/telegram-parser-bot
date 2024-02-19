@@ -3,38 +3,30 @@ import { Job } from "bull";
 import { ParserQueueJobData, parserQueue } from './domains/queues/parserQueue'; 
 import { initDatabase } from "./db/init-db"
 import { SiteParser } from "./domains/parser"
-import { sendMessageQueue, sendMessageQueueJobData } from './domains/queues/sendTelegramMessageQueue';
 import { TelegramBot } from './domains/telegram-bot';
 import { Config } from './domains/config/dot-env';
 import { UserModel } from './db/user';
 import { createAdMessageById } from './createAdMessage';
 
 const bot = new TelegramBot(Config.telegramApiToken);
-let startPage = 2;
+let firstStart = 2;
+let startPageSh = firstStart;
+let startPageAs = firstStart;
+let startPageAl = firstStart;
 
-async function startManager(pageNumber: number, stopPage: number) {
+async function startManager(city: string, pageNumber: number, stopPage: number) {
     try{
         const queueCount = await parserQueue.count();
         if (queueCount === 0) {
             console.log('Queue is empty. Adding task to queue.');
-            const cities = ['almaty', 'astana', 'shymkent'];
-            let j = 0;
-            let count = 0;
-            for(let i = pageNumber; i<=stopPage; i++){
+            for(let i = pageNumber; i<stopPage; i++){
                 await parserQueue.add(
                     {
-                        city: cities[j],
+                        city: city,
                         pageNumber: i
                     }
                 );
-                console.log(`Adding queue for ${cities[j]} - Page ${i}`);
-                
-                if(i === stopPage && count < cities.length-1 ){
-                    i = pageNumber-1;
-                    j++;
-                    count++;
-                    console.log('\n');
-                }
+                console.log(`Adding queue for ${city} - Page ${i}`);
             }
 
         } else {
@@ -51,8 +43,14 @@ parserQueue.process(async (job: Job<ParserQueueJobData>, done) => {
         const pageNumber: number = job.data.pageNumber;
         const response = await SiteParser.multiPageParse(city, pageNumber, 50);
         if(response !== null) {
-            if(response.data.length === 0 && response?.page !== 0) {
-                startPage = response?.page;
+            if(response.data.length === 0 && response.pageCity[0].page !== 0) {
+                startPageSh = response.pageCity[0].page;
+            }
+            if(response.data.length === 0 && response.pageCity[1].page !== 0){
+                startPageAs = response.pageCity[1].page;
+            }
+            if(response.data.length === 0 && response.pageCity[2].page !== 0){
+                startPageAl = response.pageCity[2].page;
             }
             else {
                 const allUsers = await UserModel.find();
@@ -63,9 +61,10 @@ parserQueue.process(async (job: Job<ParserQueueJobData>, done) => {
                         await bot.sendMessage(parseInt(allUsers[j].chatId), message);
                     }
                 }
+                response.data = [];
             }
         }
-        console.log(`Processed job for ${city} - Page ${pageNumber}`);
+        console.log(`\nProcessed job for ${city} - Page ${pageNumber}`);
         done(null, response);
     } catch (error: any) {
         console.log(error);
@@ -84,13 +83,14 @@ initDatabase().then();
 export const initJob = new CronJob(
     '* * * * *',
 	async function () {
-        if(startPage <= 5){
-            startManager(startPage, startPage+5);
-            startPage += 6;
-        }else{
-            startManager(startPage, startPage+5);
-            startPage += 6;
-        }
+        startManager('shymkent', startPageSh, startPageSh+5);
+        startPageSh += 5;
+        
+        startManager('astana', startPageAs, startPageAs+5);
+        startPageAs += 5;
+        
+        startManager('almaty', startPageAl, startPageAl+5);
+        startPageAl += 5;
         console.log("\nSSS");
 	},
     null,

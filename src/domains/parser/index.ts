@@ -27,6 +27,32 @@ const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
 };
 
+type pageCity =
+    {
+        city: string, 
+        page: number
+    };
+
+let result: {data: ParsedData[]; 
+    pageCity: pageCity []} = {
+    data: [],
+    pageCity: [
+        {
+            city: 'shymkent',
+            page: 0
+        },
+        {
+            city: 'astana',
+            page: 0
+        },
+        {
+            city: 'almaty',
+            page: 0
+        },
+    ]
+    
+};
+
 export class SiteParser{
     public static async parseId(adId: string): Promise<ParsedData | null> {
         const delay = getRandomDelay();
@@ -52,11 +78,12 @@ export class SiteParser{
             const floorString = floorText.match(/(\d+)\s+из\s+(\d+)/);
             
             let floor = parseInt(floorString ? floorString[0]: floorText);
-            if(!floor){
-                floor = parseInt(floorText);
-            }
+            let floorMax = parseInt(floorString ? floorString[floorString.length - 1]: floorText);
 
-            const floorMax = parseInt(floorString ? floorString[floorString.length - 1]: floorText);
+            if(isNaN(floor) || isNaN(floorMax)){
+                floor = 0;
+                floorMax = 0;
+            }
             
             const areaText = $('div[data-name="live.square"] .offer__advert-short-info').text().trim();
             const area = parseFloat(areaText.replace(/\D/g, ""));
@@ -97,16 +124,12 @@ export class SiteParser{
         }
     }
 
-    public static async multiPageParse(city: string, pageNumber: number, neededViews: number): Promise<{data: ParsedData[]; page: number} | null> {
+    public static async multiPageParse(city: string, pageNumber: number, neededViews: number): Promise<{data: ParsedData[]; pageCity:pageCity[]} | null> {
         const delay = getRandomDelay();
         await new Promise(resolve => setTimeout(resolve, delay));
         
         try{
             let scrapedDataArray: ParsedData[] = [];
-            let result: {data: ParsedData[]; page: number} = {
-                data: scrapedDataArray,
-                page: 0
-            };
             const cityUrl = `https://krisha.kz/arenda/kvartiry/${city}/?rent-period-switch=%2Farenda%2Fkvartiry&page=${pageNumber}`
             const response = await axios.get(cityUrl, {headers});
             const $ = cheerio.load(response.data);
@@ -126,7 +149,11 @@ export class SiteParser{
                         scrapedDataArray.push(scrapedData);
                         result.data = scrapedDataArray;
                         if(city === 'shymkent'){
-                            result.page = pageNumber;
+                            result.pageCity[0].page = pageNumber;
+                        }if(city === 'astana'){
+                            result.pageCity[1].page = pageNumber;
+                        }if(city === 'almaty'){
+                            result.pageCity[2].page = pageNumber;
                         }
                     }
                 }
