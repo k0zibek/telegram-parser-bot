@@ -19,8 +19,6 @@ export interface IArticle extends Document {
     rooms: number;
     security: string;
     description: string;
-    pageUrl: string;
-    city: string;
 }
 
 const ArticleSchema = new Schema <IArticle>({
@@ -39,8 +37,6 @@ const ArticleSchema = new Schema <IArticle>({
     rooms: { type: Number, required: true },
     security: { type: String, default: ''},
     description: { type: String, default: '' },
-    pageUrl: { type: String },
-    city: { type: String }
 }, 
 {
     timestamps: true,

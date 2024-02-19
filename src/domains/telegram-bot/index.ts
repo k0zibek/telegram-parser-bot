@@ -21,7 +21,7 @@ export class TelegramBot {
         //     console.log('Пользовательские команды установлены');
         // } catch (error) {
         //     console.error('Ошибка при установке пользовательских команд:', error);
-        // }      
+        // }
 
         this.bot
             .launch()
@@ -32,7 +32,7 @@ export class TelegramBot {
             });
         this.bot
             .command('start', async (ctx) => {
-            this.bot.telegram.sendMessage(ctx.chat.id, `Здравствуйте ${ctx.from.first_name}!`);
+            this.bot.telegram.sendMessage(ctx.chat.id, `Здравствуйте ${ctx.from.first_name}! Ожидайте идет поиск свежих объявлений🔎`);
             if(!await UserData.findOne({ 
                 chatId: String(ctx.from.id) 
             })) {

@@ -10,8 +10,7 @@ import { UserModel } from './db/user';
 import { createAdMessageById } from './createAdMessage';
 
 const bot = new TelegramBot(Config.telegramApiToken);
-let startPage = 11;
-let articleFound: boolean;
+let startPage = 2;
 
 async function startManager(pageNumber: number, stopPage: number) {
     try{
@@ -50,22 +49,23 @@ parserQueue.process(async (job: Job<ParserQueueJobData>, done) => {
     try {
         const city: string = job.data.city;
         const pageNumber: number = job.data.pageNumber;
+        // const nextBtn = await SiteParser.getNextButton(city, pageNumber);
         const response = await SiteParser.multiPageParse(city, pageNumber, 50);
-        if(response !== null) {
-            for(let i = 1; i < response.length; i++){
-                const message = await createAdMessageById(String(response[i].id));
+        if(response !== null && response !== undefined) {
+            if(response.data.length === 0) {
                 const allUsers = await UserModel.find();
-                for(let j = 0; j < allUsers.length; j++) {
-                    console.log('Sending message to user ', allUsers[j].firstName)
-                    await bot.sendMessage(parseInt(allUsers[j].chatId), message);
+                for(let i = 0; i < response.data.length; i++){
+                    const message = await createAdMessageById(String(response.data[i].id));
+                    for(let j = 0; j < allUsers.length; j++) {
+                        console.log('Sending message to user', allUsers[j].firstName)
+                        await bot.sendMessage(parseInt(allUsers[j].chatId), message);
+                    }
                 }
             }
+            if(response?.page !== 0) {
+                startPage = response?.page;
+            }
         }
-        // if( response?.length === 0 ) {
-        //     articleFound = false;
-        // } else {
-            
-        // }
         console.log(`Processed job for ${city} - Page ${pageNumber}`);
         done(null, response);
     } catch (error: any) {
@@ -86,18 +86,12 @@ export const initJob = new CronJob(
     '* * * * *',
 	async function () {
         if(startPage <= 5){
-            startManager(startPage, startPage+1);
-        }else{
-            startPage += 5;
             startManager(startPage, startPage+5);
+            startPage += 6;
+        }else{
+            startManager(startPage, startPage+5);
+            startPage += 6;
         }
-        // else if(!articleFound){
-        //     startPage += 5;
-        //     startManager(startPage, startPage+5);
-        // }else{
-        //     startPage -= 5;
-        //     startManager(startPage, startPage+5);
-        // }
         console.log("\nSSS");
 	},
     null,

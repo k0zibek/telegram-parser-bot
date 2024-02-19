@@ -17,8 +17,6 @@ interface ParsedData {
     rooms: number;
     security: string;
     description: string;
-    pageUrl: string;
-    city: string;
 }
 
 function getRandomDelay() {
@@ -73,9 +71,6 @@ export class SiteParser{
             
             const security = $('div[data-name="flat.security"] .offer__advert-short-info').text().trim();
             const description = $('.a-text-white-spaces').text().trim();
-
-            let pageUrl = '';
-            let city = '';
             
             let parsedData: ParsedData = {
                 id,
@@ -93,8 +88,6 @@ export class SiteParser{
                 rooms,
                 security,
                 description,
-                pageUrl,
-                city
             };
 
             return parsedData;
@@ -104,31 +97,45 @@ export class SiteParser{
         }
     }
 
-    public static async multiPageParse(city: string, pageNumber: number, neededViews: number): Promise<ParsedData[] | null> {
+    public static async multiPageParse(city: string, pageNumber: number, neededViews: number): Promise<{data: ParsedData[]; page: number} | null> {
         const delay = getRandomDelay();
         await new Promise(resolve => setTimeout(resolve, delay));
         
         try{
             let scrapedDataArray: ParsedData[] = [];
+            let result: {data: ParsedData[]; page: number} = {
+                data: scrapedDataArray,
+                page: 0
+            };
             const cityUrl = `https://krisha.kz/arenda/kvartiry/${city}/?rent-period-switch=%2Farenda%2Fkvartiry&page=${pageNumber}`
             const response = await axios.get(cityUrl, {headers});
             const $ = cheerio.load(response.data);
+            const date: Date = new Date();
+            const day = date.getDate();
             const ids: string[] = await this.getAllId($);
             const views = await this.getAdsViewsById(ids);
             const elements = $('.a-card').toArray();
-
-            for (let index = 0; index < elements.length; index++) {
-                const element = elements[index];
-                const $ = cheerio.load(element);
-                const innerElements = $('div.a-card__paid-services.paid-labels').find('*');
-                if(views[ids[index]] <= neededViews && ids[index] !== undefined && innerElements.length === 0) {
-                    let scrapedData = await this.parseId(ids[index]);
-                    if(scrapedData !== null){
-                        scrapedDataArray.push(scrapedData);
+            // const nextBtn = await this.getNextButton(city, pageNumber);
+            const articleDay = parseInt($('.a-card__stats-item').eq(1).text().trim());
+            if(day === articleDay){
+                for (let index = 0; index < elements.length; index++) {
+                    const element = elements[index];
+                    const $ = cheerio.load(element);
+                    const innerElements = $('div.a-card__paid-services.paid-labels').find('*');
+                    if(views[ids[index]] <= neededViews && ids[index] !== undefined && innerElements.length === 0) {
+                        let scrapedData = await this.parseId(ids[index]);
+                        if(scrapedData !== null){
+                            scrapedDataArray.push(scrapedData);
+                            result.data = scrapedDataArray;
+                            if(city === 'shymkent'){
+                                result.page = pageNumber;
+                            }
+                        }
                     }
                 }
             }
-            return scrapedDataArray;
+            
+            return result;
         }catch(error){
             console.error("multiPageParse function error! ", error)
             return null;
@@ -165,4 +172,12 @@ export class SiteParser{
         
         return result;
     };
+
+    // public static async getNextButton(city: string, pageNumber: number): Promise<boolean>{
+    //     const cityUrl = `https://krisha.kz/arenda/kvartiry/${city}/?rent-period-switch=%2Farenda%2Fkvartiry&page=${pageNumber}`;
+    //     const response = await axios.get(cityUrl, {headers});
+    //     const $ = cheerio.load(response.data);
+    //     const button = $('.paginator__btn-text');
+    //     return button.length ? true : false;
+    // }
 }
