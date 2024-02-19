@@ -49,10 +49,12 @@ parserQueue.process(async (job: Job<ParserQueueJobData>, done) => {
     try {
         const city: string = job.data.city;
         const pageNumber: number = job.data.pageNumber;
-        // const nextBtn = await SiteParser.getNextButton(city, pageNumber);
         const response = await SiteParser.multiPageParse(city, pageNumber, 50);
-        if(response !== null && response !== undefined) {
-            if(response.data.length === 0) {
+        if(response !== null) {
+            if(response.data.length === 0 && response?.page !== 0) {
+                startPage = response?.page;
+            }
+            else {
                 const allUsers = await UserModel.find();
                 for(let i = 0; i < response.data.length; i++){
                     const message = await createAdMessageById(String(response.data[i].id));
@@ -61,9 +63,6 @@ parserQueue.process(async (job: Job<ParserQueueJobData>, done) => {
                         await bot.sendMessage(parseInt(allUsers[j].chatId), message);
                     }
                 }
-            }
-            if(response?.page !== 0) {
-                startPage = response?.page;
             }
         }
         console.log(`Processed job for ${city} - Page ${pageNumber}`);

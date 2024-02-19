@@ -115,21 +115,18 @@ export class SiteParser{
             const ids: string[] = await this.getAllId($);
             const views = await this.getAdsViewsById(ids);
             const elements = $('.a-card').toArray();
-            // const nextBtn = await this.getNextButton(city, pageNumber);
-            const articleDay = parseInt($('.a-card__stats-item').eq(1).text().trim());
-            if(day === articleDay){
-                for (let index = 0; index < elements.length; index++) {
-                    const element = elements[index];
-                    const $ = cheerio.load(element);
-                    const innerElements = $('div.a-card__paid-services.paid-labels').find('*');
-                    if(views[ids[index]] <= neededViews && ids[index] !== undefined && innerElements.length === 0) {
-                        let scrapedData = await this.parseId(ids[index]);
-                        if(scrapedData !== null){
-                            scrapedDataArray.push(scrapedData);
-                            result.data = scrapedDataArray;
-                            if(city === 'shymkent'){
-                                result.page = pageNumber;
-                            }
+            for (let index = 0; index < elements.length; index++) {
+                const element = elements[index];
+                const $ = cheerio.load(element);
+                const articleDay = parseInt($('.a-card__stats-item').eq(1).text().trim());
+                const innerElements = $('div.a-card__paid-services.paid-labels').find('*');
+                if(day === articleDay && views[ids[index]] <= neededViews && ids[index] !== undefined && innerElements.length === 0) {
+                    let scrapedData = await this.parseId(ids[index]);
+                    if(scrapedData !== null){
+                        scrapedDataArray.push(scrapedData);
+                        result.data = scrapedDataArray;
+                        if(city === 'shymkent'){
+                            result.page = pageNumber;
                         }
                     }
                 }
@@ -172,12 +169,4 @@ export class SiteParser{
         
         return result;
     };
-
-    // public static async getNextButton(city: string, pageNumber: number): Promise<boolean>{
-    //     const cityUrl = `https://krisha.kz/arenda/kvartiry/${city}/?rent-period-switch=%2Farenda%2Fkvartiry&page=${pageNumber}`;
-    //     const response = await axios.get(cityUrl, {headers});
-    //     const $ = cheerio.load(response.data);
-    //     const button = $('.paginator__btn-text');
-    //     return button.length ? true : false;
-    // }
 }

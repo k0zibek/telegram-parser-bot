@@ -11,7 +11,7 @@ ${data.buildingType !== "" ? "Тип Дома: " + data.buildingType + "\n" : ""
   }
 Площадь: ${data.area} м²
 Охранная система: ${data.security !== '' ? data.security : 'отсутствует'}
-Общее описание: ${data.description !== '' ? data.description : 'отсутствует'}
+Общее описание: ${data.description !== '' ? '\n'+data.description : 'отсутствует'}
 ${data.toilet !== "" ? "Санузел: " + data.toilet : ""}
 ${data.baseUrl}
 `;
