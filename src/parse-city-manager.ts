@@ -28,7 +28,6 @@ async function startManager(city: string, pageNumber: number, stopPage: number) 
                 );
                 console.log(`Adding queue for ${city} - Page ${i}`);
             }
-
         } else {
           console.log('Queue is not empty. Skipping job addition.');
         }
@@ -56,9 +55,11 @@ parserQueue.process(async (job: Job<ParserQueueJobData>, done) => {
                 const allUsers = await UserModel.find();
                 for(let i = 0; i < response.data.length; i++){
                     const message = await createAdMessageById(String(response.data[i].id));
-                    for(let j = 0; j < allUsers.length; j++) {
-                        console.log('Sending message to user', allUsers[j].firstName)
-                        await bot.sendMessage(parseInt(allUsers[j].chatId), message);
+                    if(message !== ''){
+                        for(let j = 0; j < allUsers.length; j++) {
+                            console.log('Sending message to user', allUsers[j].firstName)
+                            await bot.sendMessage(parseInt(allUsers[j].chatId), message);
+                        }
                     }
                 }
                 response.data = [];

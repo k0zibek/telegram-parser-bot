@@ -17,7 +17,7 @@ export const createAdMessageById = async (id: string): Promise<string> => {
             }
         }
     } else {
-        message = adMessageTemplate(article);
+        message = '';
     }
     return message;
 };

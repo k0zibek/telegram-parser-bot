@@ -11,17 +11,7 @@ export class TelegramBot {
     public init() {
         const commands = [
             { command: 'help', description: 'Что делает этот бот' },
-            { command: 'stop', description: 'Остановить бота' },
         ];
-        
-        // try {
-        //     this.bot.telegram.setChatMenuButton({
-        //         chatId: 
-        //     });
-        //     console.log('Пользовательские команды установлены');
-        // } catch (error) {
-        //     console.error('Ошибка при установке пользовательских команд:', error);
-        // }
 
         this.bot
             .launch()
@@ -43,11 +33,6 @@ export class TelegramBot {
                 });
             }
         });
-        this.bot
-            .command('stop', () => {
-                console.log('Бот остановлен');
-                this.bot.stop('SIGINT');
-            });
         this.bot
             .command('help', async (ctx) => {
                 this.bot.telegram.sendMessage(ctx.chat.id,
